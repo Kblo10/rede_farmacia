@@ -51,3 +51,10 @@ DROP FUNCTION contar_endereco;
 
 
 -- CRIE UMA FUNCAO QUE RETORNA A DATA DA ULTIMA COMPRA DE UM CLIENTE
+SELECT compras.id, compras.data_compra FROM compras
+	JOIN clientes ON clientes.id = compras.clientes_id
+    WHERE compras.id = 1
+    GROUP BY compras.id;
+    
+    
+SELECT MAX(data_compra) FROM compras WHERE id = 1;
