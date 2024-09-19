@@ -47,7 +47,10 @@ DELIMITER ;
 
 SELECT contar_endereco1();
 
-DROP FUNCTION contar_endereco;
+-- DROP FUNCTION contar_endereco;
+
+-- -------------------------------------------------------------------------------------------
+-- -------------------------------------------------------------------------------------------
 
 
 -- CRIE UMA FUNCAO QUE RETORNA A DATA DA ULTIMA COMPRA DE UM CLIENTE
@@ -58,3 +61,14 @@ SELECT compras.id, compras.data_compra FROM compras
     
     
 SELECT MAX(data_compra) FROM compras WHERE id = 1;
+DELIMITER //
+CREATE FUNCTION Ultima_Compra() RETURNS INT
+DETERMINISTIC
+	BEGIN
+		DECLARE Total_ INT;
+        SELECT MAX(data_compra) INTO Total_ FROM compras ;
+        RETURN Total_;
+	END //
+DELIMITER ;
+DROP FUNCTION Ultima_Compra;
+SELECT Ultima_Compra() FROM compras;
