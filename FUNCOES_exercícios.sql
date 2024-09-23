@@ -1,5 +1,9 @@
 USE farmacia1;
 
+SELECT * FROM receita_medica;
+
+USE farmacia1;
+
 DELIMITER //
 CREATE FUNCTION calcular_idade(data_nascimento DATE) RETURNS INT 
 DETERMINISTIC
@@ -71,6 +75,7 @@ DETERMINISTIC
 	END //
 DELIMITER ;
 DROP FUNCTION Ultima_Compra;
+
 SELECT Ultima_Compra() FROM compras;
 
 -- 00 Criar um usuário com permissao somente a database farmacia
@@ -80,6 +85,8 @@ GRANT ALL PRIVILEGES ON * . * TO 'alanfarma'@'localhost';
 
 FLUSH PRIVILEGES ;
 select * from compras ;
+
+-- ----------------------------------------------------------------------------------------------------------------
 -- 1. Função para trazer as vendas dos últimos X dias
 -- Crie uma função chamada `vendas_ultimos_dias` que receba como parâmetro o número de dias (x) e retorne o número total de vendas realizadas nos últimos X dias.
 DELIMITER //
@@ -95,6 +102,7 @@ DELIMITER ;
 -- ----------TESTE------------ -- 
 select vendas_ultimos_dias(10);
 
+-- ----------------------------------------------------------------------------------------------------------
 -- 2. Função para trazer o nome do médico a partir do CRM
 -- Crie uma função chamada `nome_medico_por_crm` que receba como parâmetro o CRM e retorne o nome do médico correspondente.
 DELIMITER //
@@ -110,7 +118,7 @@ DELIMITER ;
 -- TESTE --
 SELECT nome_medico_por_crm('CRM10004');
 
-
+-- ------------------------------------------------------------------------------------------------
 -- 3. Função para calcular o total de produtos vendidos
 -- Crie uma função chamada `total_produtos_vendidos` que retorne a soma total de produtos vendidos.
 select sum(quantidade) from produtos_compras where id = 7;
@@ -128,26 +136,103 @@ DELIMITER ;
 -- TESTE 
 SELECT total_produtos_vendidos(10) ;
 
-
+-- ----------------------------------------------------------------------------
 -- 4. Função para calcular a idade do cliente
 -- Crie uma função chamada `calcular_idade_cliente` que receba como parâmetro a data de nascimento do cliente e retorne sua idade.
+DELIMITER //
+CREATE FUNCTION calcular_idade_cliente(idade_cli INT) RETURNS INT
+DETERMINISTIC
+BEGIN
+	DECLARE calc_idade INT;
+	select TIMESTAMPDIFF(YEAR, clientes.data_nascimento, NOW()) into calc_idade from clientes WHERE id = idade_cli;
+    RETURN calc_idade;
+END //
+DELIMITER ;
 
+-- TESTE 
+SELECT calcular_idade_cliente(3);
 
-
+-- -------------------------------------------------------------------------------------------------------------
 -- 5. Função para trazer o total de vendas por cliente
 -- Crie uma função chamada `total_vendas_por_cliente` que receba como parâmetro o ID do cliente e retorne o total de vendas desse cliente.
+select clientes.nome, count(compras.id) as total_vendas from compras
+join clientes on compras.clientes_id = clientes.id
+where clientes.nome = 'Tammy Corran';
+select nome from clientes;
+DELIMITER //
+CREATE FUNCTION total_vendas_por_cliente(total_cli VARCHAR(100)) RETURNS VARCHAR(50)
+DETERMINISTIC
+BEGIN
+	DECLARE t_vendas_c VARCHAR(50);
+    SELECT count(compras.id) INTO t_vendas_c from compras
+		join clientes on compras.clientes_id = clientes.id
+		where clientes.nome = total_cli ;
+	RETURN t_vendas_c ;
+END //
+DELIMITER ;
 
+-- TESTE 
+SELECT total_vendas_por_cliente('Tammy Corran') AS total_de_vendas ;
 
+-- ------------------------------------------------------------------------------------------------
 -- 6. Função para contar o número de clientes
 -- Crie uma função chamada `contar_clientes` que retorne o número total de clientes cadastrados no banco de dados.
+select count(clientes.id) from clientes;
 
+DELIMITER //
+CREATE FUNCTION contar_clientes() RETURNS INT 
+DETERMINISTIC
+BEGIN 
+	DECLARE contador_cli INT;
+    SELECT COUNT(clientes.id) into contador_cli FROM clientes;
+    RETURN contador_cli;
+END //
+DELIMITER ;
+
+-- TESTE
+SELECT contar_clientes();
+    
 
 -- 7. Função para calcular a média de produtos vendidos
 -- Crie uma função chamada `media_produtos_por_compra` que retorne a média de produtos vendidos.
+select avg(quantidade) AS média from produtos_compras
+where id = 2;
+
+DELIMITER //
+CREATE FUNCTION media_produtos_por_compra(m_produtos_c VARCHAR(50)) RETURNS INT
+DETERMINISTIC
+BEGIN 
+	DECLARE media_prod VARCHAR(50);
+    select avg(quantidade) INTO media_prod from produtos_compras 
+    join produtos on produtos.id =  produtos_compras.produtos_id where produtos.nome = m_produtos_c;
+    RETURN media_prod;
+END //
+DELIMITER ;
+
+drop function media_produtos_por_compra;
+SELECT media_produtos_por_compra('Paracetamol') AS media;
+
+select avg(quantidade) from produtos_compras where id = 1;
+select * from produtos_compras;
 
 
 -- 8. Função para trazer o nome do cliente a partir do ID
 -- Crie uma função chamada `nome_cliente_por_id` que receba como parâmetro o ID do cliente e retorne o nome do cliente.
+SELECT clientes.nome FROM clientes
+WHERE id = 2;
+
+DELIMITER //
+CREATE FUNCTION nome_cliente_por_id(nome_cli INT) RETURNS VARCHAR(50)
+DETERMINISTIC
+BEGIN 
+	DECLARE nome_id VARCHAR(50);
+    SELECT clientes.nome INTO nome_id FROM clientes WHERE clientes.id = nome_cli ;
+    RETURN nome_id;
+END //
+DELIMITER ;
+
+drop function nome_cliente_por_id;
+SELECT nome_cliente_por_id(1);
 
 
 -- 9. Função para calcular o total de vendas por mês
