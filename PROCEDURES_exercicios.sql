@@ -66,9 +66,25 @@ CALL deletar_cliente(996);
 
 -- 5. Procedure para calcular o total de vendas de um cliente
 -- Crie uma procedure chamada `calcular_total_vendas_cliente` que receba o ID de um cliente e exibe o total de vendas desse cliente.
+SELECT clientes.id, clientes.nome, COUNT(quantidade) AS Total_Vendas FROM produtos_compras
+	JOIN compras ON compras.id = produtos_compras.compras_id
+    JOIN clientes ON clientes.id = compras.clientes_id
+    Where clientes.id = 3
+GROUP BY clientes.id;
 
+DELIMITER //
+CREATE PROCEDURE calcular_total_vendas_cliente(IN calc_total_v INT) 
+BEGIN 
+	SELECT clientes.id, clientes.nome, COUNT(quantidade) AS Total_Vendas FROM produtos_compras
+		JOIN compras ON compras.id = produtos_compras.compras_id
+		JOIN clientes ON clientes.id = compras.clientes_id
+		WHERE clientes.id = calc_total_v
+	GROUP BY clientes.id;
+END //
+DELIMITER ;
 
-
+-- TESTE
+CALL calcular_total_vendas_cliente(3);
 
 
 -- 6. Procedure para listar todos os médicos
@@ -88,7 +104,7 @@ CALL listar_medicos();
 
 -- 7. Procedure para calcular a idade de um cliente
 -- Crie uma procedure chamada `calcular_idade_cliente_proc` que receba o ID de um cliente e exiba a idade com base na data de nascimento.
-select nome, timestampdiff(YEAR, clientes.data_nascimento, NOW()) from clientes where id = 10;
+select id, nome, timestampdiff(YEAR, clientes.data_nascimento, NOW()) AS idade from clientes where id = 10;
 
 DELIMITER //
 CREATE PROCEDURE calcular_idade_cliente_proc(IN id_cli INT)
@@ -96,18 +112,40 @@ BEGIN
 	 select timestampdiff(YEAR, data_nascimento, NOW())  as idade from clientes where id = id_cli;
 END //
 DELIMITER ;
-drop procedure calcular_idade_cliente_proc;
+
+
+-- TESTE
 CALL calcular_idade_cliente_proc(4) ;
-
-SELECT * from CLIENTES;
-
 
 
 -- 8. Procedure para contar o número de clientes
 -- Crie uma procedure chamada `contar_clientes_proc` que exibe o número total de clientes cadastrados.
+select count(id) from clientes;
+
+DELIMITER //
+CREATE PROCEDURE contar_clientes_proc() 
+BEGIN
+	SELECT COUNT(id) AS Total_Clientes FROM clientes ;
+END //
+DELIMITER ;
+
+-- TESTE 
+CALL contar_clientes_proc();
+
+drop procedure contar_clientes_proc;
+
 
 -- 9. Procedure para reutilizar a função de cálculo de idade
 -- Reutilize a função `calcular_idade_cliente` em uma procedure chamada `mostrar_idade_cliente`, que exibe a idade do cliente com base no ID.
+DELIMITER //
+CREATE PROCEDURE calcular_idade_cliente(IN id_c INT)
+BEGIN
+	 select id, nome, timestampdiff(YEAR, clientes.data_nascimento, NOW()) AS idade from clientes where id = id_c;
+END //
+DELIMITER ;
+
+CALL calcular_idade_cliente(1000);
+
 
 -- 10. Procedure para reutilizar a função de total de vendas
 -- Reutilize a função `total_vendas_por_cliente` em uma procedure chamada `mostrar_total_vendas_cliente`, que exibe o total de vendas de um cliente com base no ID.
