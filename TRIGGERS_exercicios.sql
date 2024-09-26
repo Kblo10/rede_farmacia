@@ -27,14 +27,14 @@ BEGIN
 END //
 DELIMITER ;
 
-SELECT * FROM produtos WHERE id = 1;
-
+-- TESTE 
 UPDATE produtos SET valor = 3.50 WHERE id = 1;
+-- --------------------------------------------
+SELECT * FROM produtos WHERE id = 1;
 
 SELECT * FROM auditoria_produtos;
 -- ALTERAR A TABELA DE AUDITORIA INCLUINDO OS CAMPOS:
 -- preco novo, preco antigo
-
 DROP TRIGGER auditoria_produtos_trigger;
 -- -------------------------------------------------------------------------
 -- -------------------------------------------------------------------------
@@ -74,11 +74,13 @@ FOR EACH ROW
 	END//
 DELIMITER ;
 
+-- TESTE 
 INSERT INTO produtos_compras(quantidade, compras_id, produtos_id)
 	VALUES ('3','2','2');
     
     SELECT * FROM produtos WHERE id = 2;
 
+-- ----------------------------------------------------------
 -- 2. Trigger para evitar CPF duplicado em clientes
 -- Crie uma trigger chamada `evitar_cpf_duplicado` que impeça a inserção de clientes com o mesmo CPF na tabela `clientes`.
 DELIMITER //
@@ -92,10 +94,14 @@ BEGIN
     END IF;
 END //
 DELIMITER ;
+
 DROP TRIGGER validar_cpf;
 
+-- TESTE 
 INSERT INTO clientes(nome, telefone, cpf, data_nascimento)
 	VALUES('Cris R.','619999999','748526476821','2000-08-09');
+
+select * from clientes where nome like 'Cris%';
 
 
 -- 3. Trigger para registrar alterações no valor de um produto
@@ -117,9 +123,15 @@ BEGIN
 END //
 DELIMITER ;
 
-DELETE FROM clientes WHERE id = 87;
+-- TESTE com cliente que possui compras
+DELETE FROM clientes WHERE id = 56;
+-- TESTE com cliente que não possui compras
+DELETE FROM clientes WHERE id = 97; -- ja deletado
 
+select * from compras;
 DROP TRIGGER impedir_exclusao_cliente_com_compras;
+
+
 -- 5. Trigger para calcular o total da venda automaticamente
 -- Crie uma trigger chamada `calcular_total_venda` que automaticamente calcule e insira o valor total da venda ao realizar uma inserção na tabela `vendas`.
 
@@ -156,6 +168,14 @@ SELECT nome, qtd_produtos AS Estoque_Atual FROM produtos WHERE id= 2;
 
 -- 7. Trigger para calcular o total gasto por um cliente após cada compra
 -- Crie uma trigger chamada `atualizar_total_gasto_cliente` que atualize o total gasto por um cliente sempre que uma nova compra for registrada.
+-- somar valor da compra
+-- valor produto x qtd produtos
+select count(produtos_compras.quantidade)*count(produtos.valor) from produtos
+join produtos_compras ON produtos_compras.produtos_id = produtos.id
+where id = 3;
+
+select * from clientes;
+
 
 -- 8. Trigger para registrar exclusão de produtos no log
 -- Crie uma trigger chamada `log_exclusao_produto` que registre a exclusão de produtos na tabela `log_exclusoes_produtos`.
