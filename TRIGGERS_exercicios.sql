@@ -3,7 +3,7 @@
 -- Terceira Forma Normal (3FN): Se uma tabela está na primeira e segunda forma normal, mas ao analisarmos um registro encontramos um atributo não chave dependente de outro atributo não chave, precisaremos corrigir a tabela para a terceira forma normal. Aqui basicamente corrigiremos a dependência funcional transitiva.
 
 USE farmacia1;
-
+select * from auditoria_produtos;
 CREATE TABLE auditoria_produtos(
 id INT AUTO_INCREMENT PRIMARY KEY,
 produto_id INT,
@@ -29,7 +29,7 @@ END //
 DELIMITER ;
 
 -- TESTE 
-UPDATE produtos SET valor = 3.50 WHERE id = 1;
+UPDATE produtos SET valor = 3.90 WHERE id = 1;
 -- --------------------------------------------
 SELECT * FROM produtos WHERE id = 1;
 
@@ -77,7 +77,7 @@ DELIMITER ;
 
 -- TESTE 
 INSERT INTO produtos_compras(quantidade, compras_id, produtos_id)
-	VALUES ('3','2','2');
+	VALUES ('3','1','1');
     
     SELECT * FROM produtos WHERE id = 2;
 
@@ -155,7 +155,7 @@ CREATE TRIGGER calcular_total_venda
 AFTER INSERT ON produtos_compras
 FOR EACH ROW
 BEGIN 
-	UPDATE compras SET valor_total = valor_total + (NEW.quantidade * (SELECT valor FROM produto WHERE id = NEW.produtos_id1))
+	UPDATE compras SET valor_total = valor_total + (NEW.quantidade * (SELECT valor FROM produto WHERE id = NEW.produtos_id))
     WHERE id = NEW.compras_id;
 END //
 delimiter ;
@@ -242,11 +242,33 @@ SELECT * FROM clientes WHERE id = 55;
 
 -- 10. Trigger para registrar auditoria de alterações de clientes
 -- Crie uma trigger chamada `auditar_alteracao_cliente` que registre alterações no cadastro de clientes em uma tabela de auditoria.
+CREATE TABLE auditoria_clientes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255),
+    telefone VARCHAR(50),
+    cpf VARCHAR(20),
+    data_nascimento DATE,
+    endereco_id INT,
+    ultima_compra DATE,
+    data_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+drop table auditoria_clientes;
+ALTER TABLE auditoria_clientes 
+	ADD CONSTRAINT fk_clientes_auditoria
+    FOREIGN KEY (cliente_id) REFERENCES clientes(id);
+
+DELIMITER //
+
 CREATE TRIGGER auditar_alteracao_cliente
-AFTER INSERT ON clientes
+AFTER UPDATE ON clientes
 FOR EACH ROW
 BEGIN
-	INSERT INTO clientes(nome, telefone, cpf, data_nascimento, endereco_id)
-		VALUES (OLD.nome, 'Deletado', OLD.valor, OLD.nome);
+	INSERT INTO auditoria_clientes(nome, telefone, cpf, data_nascimento, endereco_id, ultima_compra)
+		VALUES (OLD.nome, OLD.telefone, OLD.cpf, OLD.data_nascimento, OLD.endereco_id, OLD.ultima_compra);
 END //
+
 DELIMITER ;
+drop trigger auditar_alteracao_cliente;
+select * from clientes where id = 6;
+UPDATE clientes SET nome = 'Ronaldinho Gaúcho' where id = 6;
+select * from auditoria_clientes where id = 6;
