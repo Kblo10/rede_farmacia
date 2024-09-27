@@ -12,6 +12,7 @@ data_modificacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ); 
 
 ALTER TABLE auditoria_produtos
+	 ADD COLUMN nome VARCHAR(30),
 	 ADD COLUMN preco_antigo DECIMAL(10,2),
 	 ADD COLUMN preco_novo DECIMAL(10,2);
 
@@ -106,8 +107,20 @@ select * from clientes where nome like 'Cris%';
 
 -- 3. Trigger para registrar alterações no valor de um produto
 -- Crie uma trigger chamada `log_alteracao_preco_produto` que registre em uma tabela de log sempre que o preço de um produto for alterado.
+DELIMITER //
+CREATE TRIGGER auditoria_prod
+AFTER UPDATE ON produtos
+FOR EACH ROW
+BEGIN 
+	INSERT INTO auditoria_produtos(produto_id, acao, preco_antigo, preco_novo, nome)
+		VALUES (OLD.id, 'Atualizado', OLD.valor, NEW.valor, OLD.nome);
+END //
+DELIMITER ;
 
 
+-- TESTE
+UPDATE produtos SET valor = 4.95 WHERE id = 1;
+select * from auditoria_produtos where produto_id = 1;
 
 -- 4. Trigger para impedir exclusão de clientes com compras
 -- Crie uma trigger chamada `impedir_exclusao_cliente_com_compras` que impeça a exclusão de clientes que já realizaram compras.
@@ -134,6 +147,20 @@ DROP TRIGGER impedir_exclusao_cliente_com_compras;
 
 -- 5. Trigger para calcular o total da venda automaticamente
 -- Crie uma trigger chamada `calcular_total_venda` que automaticamente calcule e insira o valor total da venda ao realizar uma inserção na tabela `vendas`.
+ALTER TABLE compras
+	ADD COLUMN valor_total DECIMAL(10,2);
+
+DELIMITER //
+CREATE TRIGGER calcular_total_venda
+AFTER INSERT ON produtos_compras
+FOR EACH ROW
+BEGIN 
+	UPDATE compras SET valor_total = valor_total + (NEW.quantidade * (SELECT valor FROM produto WHERE id = NEW.produtos_id1))
+    WHERE id = NEW.compras_id;
+END //
+delimiter ;
+
+SELECT * FROM produtos_compras;
 
 -- 6. Trigger para impedir vendas de produtos sem estoque
 -- Crie uma trigger chamada `impedir_venda_sem_estoque` que impeça a venda de produtos que não possuem estoque suficiente.
@@ -168,20 +195,58 @@ SELECT nome, qtd_produtos AS Estoque_Atual FROM produtos WHERE id= 2;
 
 -- 7. Trigger para calcular o total gasto por um cliente após cada compra
 -- Crie uma trigger chamada `atualizar_total_gasto_cliente` que atualize o total gasto por um cliente sempre que uma nova compra for registrada.
--- somar valor da compra
--- valor produto x qtd produtos
-select count(produtos_compras.quantidade)*count(produtos.valor) from produtos
-join produtos_compras ON produtos_compras.produtos_id = produtos.id
-where id = 3;
-
-select * from clientes;
-
 
 -- 8. Trigger para registrar exclusão de produtos no log
 -- Crie uma trigger chamada `log_exclusao_produto` que registre a exclusão de produtos na tabela `log_exclusoes_produtos`.
+DELIMITER //
+CREATE TRIGGER auditoria_prod_delete
+AFTER DELETE ON produtos
+FOR EACH ROW
+BEGIN 
+	INSERT INTO auditoria_produtos(produto_id, acao, preco_antigo, nome)
+		VALUES (OLD.id, 'Deletado', OLD.valor, OLD.nome);
+END //
+DELIMITER ;
+
+select * from produtos_compras
+right join produtos on produtos.id = produtos_compras.produtos_id
+where produtos_id is null;
+
+-- INSERCAO
+INSERT INTO produtos(nome, descricao, valor, fabricantes_id, tipos_produtos_id, qtd_produtos)
+	VALUES ('Arroz', 'Alimento', 10.50, 1, 1, 100);
+    
+-- TESTE 
+DELETE FROM produtos WHERE id = 82 ;
 
 -- 9. Trigger para atualizar a última compra do cliente
 -- Crie uma trigger chamada `atualizar_ultima_compra_cliente` que atualize a data da última compra do cliente na tabela `clientes` após uma compra ser realizada.
+ALTER TABLE clientes
+	ADD COLUMN ultima_compra DATE;
+    
+DELIMITER //
+CREATE TRIGGER atualizar_ultima_compra_cliente
+AFTER INSERT ON compras
+FOR EACH ROW
+BEGIN
+	UPDATE clientes SET ultima_compra = NEW.data_compra
+    WHERE id = NEW.clientes_id;
+END //
+DELIMITER ;
+
+INSERT INTO compras(data_compra, clientes_id)
+	VALUES (CURDATE(), 55);
+    
+SELECT * FROM clientes WHERE id = 55;
+
 
 -- 10. Trigger para registrar auditoria de alterações de clientes
 -- Crie uma trigger chamada `auditar_alteracao_cliente` que registre alterações no cadastro de clientes em uma tabela de auditoria.
+CREATE TRIGGER auditar_alteracao_cliente
+AFTER INSERT ON clientes
+FOR EACH ROW
+BEGIN
+	INSERT INTO clientes(nome, telefone, cpf, data_nascimento, endereco_id)
+		VALUES (OLD.nome, 'Deletado', OLD.valor, OLD.nome);
+END //
+DELIMITER ;
