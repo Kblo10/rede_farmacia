@@ -155,12 +155,21 @@ CREATE TRIGGER calcular_total_venda
 AFTER INSERT ON produtos_compras
 FOR EACH ROW
 BEGIN 
-	UPDATE compras SET valor_total = valor_total + (NEW.quantidade * (SELECT valor FROM produto WHERE id = NEW.produtos_id))
+	UPDATE compras 
+    SET valor_total = valor_total + (NEW.quantidade * (SELECT valor FROM produtos WHERE id = NEW.produtos_id))
     WHERE id = NEW.compras_id;
 END //
 delimiter ;
 
-SELECT * FROM produtos_compras;
+-- TESTE
+INSERT INTO produtos_compras(quantidade, compras_id, produtos_id)
+	VALUES ('30','11','3') ;
+
+ALTER TABLE compras ADD COLUMN valor_total DOUBLE(10,2) DEFAULT 0;
+ALTER TABLE compras DROP COLUMN valor_total;
+SELECT * FROM produtos_compras WHERE compras_id = 11;
+SELECT * FROM compras WHERE id = 11; -- consulta de compras
+
 
 -- 6. Trigger para impedir vendas de produtos sem estoque
 -- Crie uma trigger chamada `impedir_venda_sem_estoque` que impeça a venda de produtos que não possuem estoque suficiente.
@@ -195,6 +204,16 @@ SELECT nome, qtd_produtos AS Estoque_Atual FROM produtos WHERE id= 2;
 
 -- 7. Trigger para calcular o total gasto por um cliente após cada compra
 -- Crie uma trigger chamada `atualizar_total_gasto_cliente` que atualize o total gasto por um cliente sempre que uma nova compra for registrada.
+DELIMITER //
+CREATE TRIGGER atualizar_total_gasto_cliente
+AFTER UPDATE ON compras
+FOR EACH ROW
+BEGIN 
+	UPDATE clientes SET total_gasto = total_gasto + NEW.valor_total
+		WHERE id = NEW.clientes_id ;
+END //
+DELIMITER ;
+
 
 -- 8. Trigger para registrar exclusão de produtos no log
 -- Crie uma trigger chamada `log_exclusao_produto` que registre a exclusão de produtos na tabela `log_exclusoes_produtos`.
@@ -242,20 +261,17 @@ SELECT * FROM clientes WHERE id = 55;
 
 -- 10. Trigger para registrar auditoria de alterações de clientes
 -- Crie uma trigger chamada `auditar_alteracao_cliente` que registre alterações no cadastro de clientes em uma tabela de auditoria.
-CREATE TABLE auditoria_clientes (
+CREATE TABLE IF NOT EXISTS auditoria_clientes (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT NOT NULL,
     nome VARCHAR(255),
-    telefone VARCHAR(50),
-    cpf VARCHAR(20),
-    data_nascimento DATE,
-    endereco_id INT,
-    ultima_compra DATE,
-    data_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    acao VARCHAR(30),
+    campo_alterado VARCHAR(30),
+    antigo_valor VARCHAR(30),
+    novo_valor VARCHAR(30),
+    data_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP	
 );
 drop table auditoria_clientes;
-ALTER TABLE auditoria_clientes 
-	ADD CONSTRAINT fk_clientes_auditoria
-    FOREIGN KEY (cliente_id) REFERENCES clientes(id);
 
 DELIMITER //
 
@@ -263,12 +279,22 @@ CREATE TRIGGER auditar_alteracao_cliente
 AFTER UPDATE ON clientes
 FOR EACH ROW
 BEGIN
-	INSERT INTO auditoria_clientes(nome, telefone, cpf, data_nascimento, endereco_id, ultima_compra)
-		VALUES (OLD.nome, OLD.telefone, OLD.cpf, OLD.data_nascimento, OLD.endereco_id, OLD.ultima_compra);
+	IF OLD.nome <> NEW.nome THEN -- entao
+	INSERT INTO auditoria_clientes(id_cliente, acao, campo_alterado, antigo_valor, novo_valor)
+		VALUES (OLD.id, 'Atualizacao', 'nome', OLD.nome, NEW.nome);
+	END IF;
+    IF OLD.cpf <> NEW.cpf THEN -- entao
+	INSERT INTO auditoria_clientes(id_cliente, acao, campo_alterado, antigo_valor, novo_valor)
+		VALUES (OLD.id, 'Atualizacao', 'cpf', OLD.cpf, NEW.cpf);
+	END IF;
 END //
-
 DELIMITER ;
-drop trigger auditar_alteracao_cliente;
+
+-- TESTE
+UPDATE clientes SET nome = 'Ronaldinho Gaúcho' where id = 7;
+UPDATE clientes SET cpf = '04454555862' where id = 6;
+
+select * from auditoria_clientes;
+
 select * from clientes where id = 6;
-UPDATE clientes SET nome = 'Ronaldinho Gaúcho' where id = 6;
-select * from auditoria_clientes where id = 6;
+drop trigger auditar_alteracao_cliente;
